@@ -5,8 +5,8 @@ from decimal import Decimal
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.db.models import SET_NULL
-
-
+import logging
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
 class User(AbstractUser):
 
@@ -74,7 +74,7 @@ class Bet(BaseModel):
                                 (price_change < 0 and self.prediction == 'disagree')
 
         receiver_id = self.chat_id if self.chat_type in ["group", "supergroup"] else self.user.user.id
-
+        logging.debug(f"receiver_id: ->{receiver_id}<-")
         if is_correct_prediction:
             self.result = 'won'
             self.user.add_xp(10)
@@ -83,10 +83,11 @@ class Bet(BaseModel):
                        else f"🎉 You won the bet on {self.symbol}! +10 XP added! 🎯")
         else:
             self.result = 'lost'
-            message = (f"☠️ @{self.user.user.username} lost the bet on {self.symbol}. Better luck next time! 😢"
+            self.user.add_xp(1)
+            message = (f"☠️ @{self.user.user.username} lost the bet on {self.symbol}. +1 XP for the effort! 💪 Better luck next time! 😢"
                        if self.chat_type in ["group", "supergroup"]
-                       else f"☠️ You lost the bet on {self.symbol}. Better luck next time! 😢")
-            
+                       else f"☠️ You lost the bet on {self.symbol}. +1 XP for the effort! 💪 Better luck next time! 😢")
+
         send_telegram_message.delay(receiver_id, message, self.msg_id)
         self.save()
 
