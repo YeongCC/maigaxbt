@@ -32,12 +32,14 @@ app.autodiscover_tasks()
 w3 = Web3(Web3.HTTPProvider(OPBNB_PROVIDER_RPC_URL))
 
 schedule_time = timedelta(hours=1) if PRODUCTION else timedelta(seconds=1)
+
 app.conf.beat_schedule = {
     'verify-bets-every-1-hour': {
         'task': 'tasks.app.verify_bets',
         'schedule': schedule_time,  # Run every 1 hour
-    },      
+    }
 }
+
 
 @shared_task
 def verify_bets():
@@ -46,8 +48,10 @@ def verify_bets():
     coins_dict = get_crypto_prices(coins_ids)
 
     for bet in bets:
-        # verification_time = bet.created_at + timedelta(hours=bet.verification_time)    
-        verification_time = bet.created_at + timedelta(seconds=bet.verification_time)    
+        if PRODUCTION:
+            verification_time = bet.created_at + timedelta(hours=bet.verification_time)    
+        else:
+            verification_time = bet.created_at + timedelta(seconds=bet.verification_time)    
         if now() >= verification_time:
             result = bet.check_bet_result(coins_dict[bet.token])
 
@@ -84,9 +88,9 @@ def verify_bets():
                     logging.info(f"Minted {xp_reward} XP to {user_profile.user.username} | TX: {tx_url}")
                 else:
                     logging.error(f"[Minted Error] Failed to mint XP for {user_profile.user.username}")
-
+            else:
+                logging.error(f"[Token Error] Undefind: {bet.token}")
     return f"Verified {bets.count()} bets"
-
 
 async def _send(user_id, message, msg_id):
     bot = Bot(token=tg_bot_token)
