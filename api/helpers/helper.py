@@ -65,14 +65,11 @@ async def async_get_crypto_price(coin_id):
             return None
 
 def get_crypto_prices(coin_ids):
-    result = get_coin_id_from_symbol(coin_id)
-    if result != coin_id:
-        print(f"❌ Invalid coin ID: {coin_id}")
-        return {}
+    result = get_coin_id_from_symbol(coin_ids)
     
     url = "https://pro-api.coingecko.com/api/v3/simple/price"
     params = {
-        "ids": ",".join(coin_ids),
+        "ids": ",".join(result),
         "vs_currencies": "usd"
     }
 
