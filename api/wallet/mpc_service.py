@@ -1,11 +1,11 @@
 from __future__ import annotations
+import asyncio
 
 from api.config.application import MPC_SERVER_URL_1, MPC_SERVER_URL_2, MPC_SERVER_URL_3
 from api.wallet.shamirs_secret_sharing_python import combine, split
 from eth_account import Account
 import httpx
 import logging
-
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -45,6 +45,7 @@ async def retrieve_private_key(wallet_address: str) -> str:
                 res = await client.get(f"{url}/getShare", params={"walletAddress": wallet_address})
                 data = res.json()
                 share = data.get("share")
+                logging.info(f"[share] {share}")
                 if share and share != "not found":
                     shares.append(bytes.fromhex(share))  
             except Exception as e:
@@ -53,9 +54,8 @@ async def retrieve_private_key(wallet_address: str) -> str:
 
     if len(shares) < 2:
         raise Exception("Not enough shares to recover private key")
-    
+
     private_key_bytes = combine(shares)
-    # private_key = private_key_bytes.decode("utf-8")  
     private_key = "0x" + private_key_bytes.hex()  
     return private_key
 
@@ -83,3 +83,5 @@ async def replace_wallet_shares(wallet_address: str):
                 logging.info(f"[replaceShares] Sent share to {url}: {shares[i].hex()}")
             except Exception as e:
                 print(f"[replace_wallet_shares] Error replacing share on {url}: {e}")
+                
+                

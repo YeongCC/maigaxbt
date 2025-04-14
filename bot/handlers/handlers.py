@@ -168,6 +168,13 @@ async def process_create_wallet(user_id: int, message: types.Message):
     except Exception as e:
         await message.answer(f"Wallet created but XP token minting failed.\n\nError: {e}")
 
+@router.message(Command(commands=["xpbalance"]))
+async def handle_xpbalance_command(message: types.Message) -> None:
+    if message.from_user is None:
+        return
+
+    user_profile = await get_my_stats(user_id=message.from_user.id)
+    await message.answer(f"Your balance is {user_profile.xp_points} XP")
 
 @router.message(Command(commands=["analyse"]))
 async def generate_response(message: types.Message) -> None:
@@ -221,8 +228,6 @@ async def generate_response(message: types.Message) -> None:
 
     await add_gen_data_to_db(analysis_reply, message.from_user.id)
 
-
-
 @router.callback_query()
 async def bet_up_or_down(callback: types.CallbackQuery) -> None:
     try:
@@ -260,13 +265,16 @@ async def bet_up_or_down(callback: types.CallbackQuery) -> None:
 
         await callback.message.reply(response_text, reply_markup=None)
 
-@router.message(Command(commands=["xpbalance"]))
-async def handle_xpbalance_command(message: types.Message) -> None:
-    if message.from_user is None:
-        return
 
-    user_profile = await get_my_stats(user_id=message.from_user.id)
-    await message.answer(f"Your balance is {user_profile.xp_points} XP")
+@router.message(Command(commands=["report"]))
+async def generate_report(message: types.Message) -> None:
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="📈 Market Behavior", callback_data="report_market")],
+        [InlineKeyboardButton(text="📊 Open Interest Overview", callback_data="report_oi")],
+        [InlineKeyboardButton(text="📉 Multi-Timeframe", callback_data="report_multi")],
+        [InlineKeyboardButton(text="💸 Fund Flow Analysis", callback_data="report_fundflow")]
+    ])
+    await message.answer("Please select the analysis report to be generated:", reply_markup=keyboard)
 
 
 @router.message(F.text)
