@@ -107,4 +107,23 @@ class Migration(migrations.Migration):
                 "abstract": False,
             },
         ),
+        migrations.CreateModel(
+            name='Report',
+            fields=[
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('report_type', models.CharField(max_length=32)),
+                ('symbol', models.CharField(max_length=32)),
+                ('result_text', models.TextField()),
+                ('created_at', models.DateTimeField(auto_now_add=True)),
+                ('user', models.ForeignKey(
+                    on_delete=django.db.models.deletion.CASCADE,
+                    related_name='reports',
+                    to=settings.AUTH_USER_MODEL
+                )),
+            ],
+            options={
+                "ordering": ("id",),
+                "abstract": False,
+            },
+        ),
     ]

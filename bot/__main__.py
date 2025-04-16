@@ -29,6 +29,7 @@ async def set_bot_commands() -> None:
         [
             BotCommand(command="/start", description="Register the bot"),
             BotCommand(command="/analyse", description="Get crypto coin list for analysis"),
+            BotCommand(command="/report", description="Get crypto analysis: trends, RSI, OI, fund flows"),
             BotCommand(command="/xpbalance", description="Get your XP balance"),
             BotCommand(command="/createwallet", description="Create New Wallet Address"),
         ],

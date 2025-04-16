@@ -21,3 +21,13 @@ class GenData(BaseModel):
 
     def __str__(self):
         return self.title
+    
+class Report(BaseModel):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="reports")
+    report_type = models.CharField(max_length=32)
+    symbol = models.CharField(max_length=32)
+    result_text = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.user.username} - {self.report_type} - {self.symbol}"

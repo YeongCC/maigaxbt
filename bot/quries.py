@@ -3,7 +3,7 @@ from datetime import timedelta
 from decimal import Decimal
 from asgiref.sync import sync_to_async
 
-from api.analysis.models import GenData, Prompt
+from api.analysis.models import GenData, Prompt, Report
 from api.user.models import User, UserProfile, Bet, Wallet, Transaction
 from api.wallet.mpc_service import create_wallet
 
@@ -121,3 +121,34 @@ def record_transaction(
         retry_count=retry_count,
         status=status,
     )
+    
+@sync_to_async
+def is_report_over_limit(user_id, hours=1):
+    """
+    Check if the user has generated any report in the past hour.
+    """
+    time_limit = timedelta(hours=hours)
+    time_threshold = timezone.now() - time_limit
+
+    recent_reports = Report.objects.filter(user_id=user_id, created_at__gte=time_threshold)
+
+    if recent_reports.exists():
+        next_available_time = recent_reports.order_by("created_at").first().created_at + time_limit
+        return True, next_available_time.astimezone(timezone.get_current_timezone())
+
+    return False, None
+    
+    
+@sync_to_async
+def add_report_data_to_db(user_id: int, report_type: str, symbol: str, result_text: str):
+    """
+    Save a generated report into the Report table
+    """
+    Report.objects.create(
+        user_id=user_id,
+        report_type=report_type,
+        symbol=symbol,
+        result_text=result_text
+    )
+    
+    
