@@ -126,7 +126,6 @@ class BinanceFuturesAnalyzer:
         try:
             response = requests.get(url, headers=self.headers)
             response.raise_for_status()
-            data = response.json()
             return [symbol['symbol'] for symbol in data['symbols']
                     if symbol['symbol'].endswith('USDT') and symbol['status'] == 'TRADING']
         except Exception as e:
@@ -151,9 +150,9 @@ class BinanceFuturesAnalyzer:
             logging.error(f"Failed to get open interest for {symbol}: {e}")
             return None
 
-    def analyze_positions(self) -> pd.DataFrame:
+    def analyze_positions(self, symbols: str) -> pd.DataFrame:
         """Analyze open interest positions for all trading pairs"""
-        symbols = self.get_usdt_symbols()
+        # symbols = self.get_usdt_symbols()
         historical_data = {}
         with ThreadPoolExecutor(max_workers=5) as executor:
             future_to_symbol = {
@@ -271,12 +270,16 @@ class BinanceFuturesAnalyzer:
             f"1. **Market behavior patterns**\n"
             f"2. **Bull/Bear strength comparison**\n"
             f"3. **Trading strategy suggestions**\n"
-            f"Use markdown, tables, and bold key indicators clearly."
+            f"For each section:\n"
+            f"- Start with the section title in bold using markdown (**...**)\n"
+            f"- Provide 1–2 paragraphs of professional analysis\n"
+            f"- Do not use markdown tables\n"
+            f"- Focus on clarity, segmentation, and readability"
         )
 
         try:
             response = await client.chat.completions.create(
-                model="gpt-4",
+                model="gpt-4o-mini",
                 messages=[{"role": "user", "content": prompt}],
                 max_tokens=4000,
                 temperature=0.7
@@ -295,9 +298,9 @@ class BinanceFuturesAnalyzer:
 
         prompt = (
             f"Perform a professional market analysis based on Binance futures USDT open interest changes:\n\n"
-            f"**Top 10 Increases in Open Interest**\n"
+            f"**Top 5 Increases in Open Interest**\n"
             f"```\n{top_increase[['symbol', 'change_percentage']].to_string()}\n```\n\n"
-            f"**Top 10 Decreases in Open Interest**\n"
+            f"**Top 5 Decreases in Open Interest**\n"
             f"```\n{top_decrease[['symbol', 'change_percentage']].to_string()}\n```\n\n"
             f"Provide an analysis including:\n"
             f"1. **Market sentiment analysis** based on open interest changes.\n"
@@ -310,7 +313,7 @@ class BinanceFuturesAnalyzer:
 
         try:
             response = await client.chat.completions.create(
-                model="gpt-4",
+                model="gpt-4o-mini",
                 messages=[{"role": "user", "content": prompt}],
                 max_tokens=4000,
                 temperature=0.7
@@ -438,7 +441,7 @@ async def multi_timeframe_analysis(symbol: str) -> dict:
 
     try:
         response = await client.chat.completions.create(
-            model="gpt-4",
+            model="gpt-4o-mini",
             messages=[
                 {"role": "system",
                  "content": "You are a professional crypto analyst. Strictly follow the given format."},
@@ -581,15 +584,31 @@ class FundFlowAnalyzer:
     async def send_to_chatgpt(self, data):
         """Send data to ChatGPT for generating fund flow analysis"""
         prompt = (
-            "You are a professional crypto market analyst. Based on the following Binance spot and futures USDT trading pair data "
-            "(last completed 4H interval), please generate a detailed fund flow analysis:\n\n"
-            f"{json.dumps(data, indent=2)}\n\n"
-            "Instructions:\n"
-            "1. **Smart Money Behavior**: Analyze fund inflow/outflow trends across spot and futures markets.\n"
-            "2. **Market Stage Assessment**: Determine if the market is trending up, down, or consolidating.\n"
-            "3. **Short-Term Outlook (4-8H)**: Predict direction and identify key support/resistance.\n"
-            "4. **Trade Strategy Suggestions**: Suggest actions for BTCUSDT, ETHUSDT, etc.\n\n"
-            "Use markdown format, highlight important metrics with **bold**, use tables where helpful.\n"
+            "Based on the fund inflow and outflow data over the past 4 hours for USDT trading pairs on Binance spot and futures markets, generate a professional fund flow analysis report. The data is as follows:\n" +
+            json.dumps(data, indent=2, ensure_ascii=False) +
+            "\n\n"
+            "### Analysis Requirements\n"
+            "1. **Interpretation of Institutional Fund Behavior**:\n"
+            "   - Identify fund flow patterns (net inflow/outflow) for the same trading pairs in both spot and futures markets.\n"
+            "   - Analyze potential institutional behaviors (e.g., accumulation, pump, hedging, wash trading) with reference to volume-price relationships (e.g., high volume with low volatility).\n"
+            "   - Evaluate order book pressure (volume imbalance) and the correlation between fund flow and price movement.\n"
+            "2. **Price Stage Assessment**:\n"
+            "   - Infer the current market stage (consolidation/uptrend/downtrend) based on fund flows and quantify confidence (e.g., correlation strength or trend intensity).\n"
+            "   - Compare the trend consistency and leading relationships between spot and futures markets.\n"
+            "3. **Short-Term Trend Forecast (4–8 hours)**:\n"
+            "   - Predict short-term direction (bullish/bearish/sideways) for major trading pairs, and highlight key support/resistance levels.\n"
+            "4. **Trading Strategy Recommendations**:\n"
+            "   - Provide concrete trading strategies (direction, entry point, stop-loss, target) for major pairs (e.g., BTCUSDT, ETHUSDT).\n"
+            "   - Include risk-reward ratio and hedging suggestions.\n"
+            "\n"
+            "### Output Guidelines\n"
+            "- Use Markdown format, structured as: [Institutional Behavior Analysis] → [Price Stage Assessment] → [Short-Term Forecast] → [Strategy Recommendations].\n"
+            "- Use concise and professional language, emphasize actionable signals, and avoid redundant descriptions.\n"
+            "- Data Presentation:\n"
+            "  - Highlight key metrics (e.g., volume imbalance, correlation) with **bold** text.\n"
+            "  - Use tables to compare spot/futures fund flow and strategy highlights.\n"
+            "  - Express trend confidence as percentages or p-values.\n"
+            "- The response should be in English, with clear logic and suitable for trading decision-making.\n"
         )
 
         try:
@@ -604,12 +623,10 @@ class FundFlowAnalyzer:
             logging.error(f"ChatGPT API error: {e}")
             return "Failed to get response from ChatGPT."
 
-    def analyze_fund_flow(self):
+    def analyze_fund_flow(self, symbols: str):
         """Analyze fund flows"""
-        spot_symbols = self.get_all_usdt_symbols(is_futures=False)
-        futures_symbols = self.get_all_usdt_symbols(is_futures=True)
-        spot_data = self.get_klines_parallel(spot_symbols, is_futures=False, max_workers=20, include_latest=True)
-        futures_data = self.get_klines_parallel(futures_symbols, is_futures=True, max_workers=20, include_latest=True)
+        spot_data = self.get_klines_parallel(symbols, is_futures=False, max_workers=5, include_latest=True)
+        futures_data = self.get_klines_parallel(symbols, is_futures=True, max_workers=5, include_latest=True)
 
         spot_df = pd.DataFrame(spot_data)
         futures_df = pd.DataFrame(futures_data)
@@ -622,24 +639,25 @@ class FundFlowAnalyzer:
             logging.error("Futures data is empty or missing 'net_inflow'")
             futures_df = pd.DataFrame(columns=['symbol', 'net_inflow', 'quote_volume', 'latest_price'])
 
-        spot_inflow_top20 = spot_df.sort_values(by='net_inflow', ascending=False).head(20)
-        futures_inflow_top20 = futures_df.sort_values(by='net_inflow', ascending=False).head(20)
-        spot_outflow_top20 = spot_df.sort_values(by='net_inflow', ascending=True).head(20)
-        futures_outflow_top20 = futures_df.sort_values(by='net_inflow', ascending=True).head(20)
+        spot_inflow_top5 = spot_df.sort_values(by='net_inflow', ascending=False).head(len(symbols))
+        futures_inflow_top5 = futures_df.sort_values(by='net_inflow', ascending=False).head(len(symbols))
+        spot_outflow_top5 = spot_df.sort_values(by='net_inflow', ascending=True).head(len(symbols))
+        futures_outflow_top5 = futures_df.sort_values(by='net_inflow', ascending=True).head(len(symbols))
 
         gpt_input_data = {
-            "spot_inflow_top20": spot_inflow_top20[['symbol', 'net_inflow', 'quote_volume', 'latest_price']].to_dict('records'),
-            "futures_inflow_top20": futures_inflow_top20[['symbol', 'net_inflow', 'quote_volume', 'latest_price']].to_dict('records'),
-            "spot_outflow_top20": spot_outflow_top20[['symbol', 'net_inflow', 'quote_volume', 'latest_price']].to_dict('records'),
-            "futures_outflow_top20": futures_outflow_top20[['symbol', 'net_inflow', 'quote_volume', 'latest_price']].to_dict('records'),
+            "spot_inflow_top5": spot_inflow_top5[['symbol', 'net_inflow', 'quote_volume', 'latest_price']].to_dict('records'),
+            "futures_inflow_top5": futures_inflow_top5[['symbol', 'net_inflow', 'quote_volume', 'latest_price']].to_dict('records'),
+            "spot_outflow_top5": spot_outflow_top5[['symbol', 'net_inflow', 'quote_volume', 'latest_price']].to_dict('records'),
+            "futures_outflow_top5": futures_outflow_top5[['symbol', 'net_inflow', 'quote_volume', 'latest_price']].to_dict('records'),
             "timestamp": datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')
         }
 
         analysis = self.send_to_chatgpt(gpt_input_data)
         return {
-            "spot_inflow_top20": spot_inflow_top20,
-            "futures_inflow_top20": futures_inflow_top20,
-            "spot_outflow_top20": spot_outflow_top20,
-            "futures_outflow_top20": futures_outflow_top20,
+            "spot_inflow_top5": spot_inflow_top5,
+            "futures_inflow_top5": futures_inflow_top5,
+            "spot_outflow_top5": spot_outflow_top5,
+            "futures_outflow_top5": futures_outflow_top5,
             "analysis": analysis
         }
+    

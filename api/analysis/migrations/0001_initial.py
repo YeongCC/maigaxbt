@@ -114,7 +114,26 @@ class Migration(migrations.Migration):
                 ('report_type', models.CharField(max_length=32)),
                 ('symbol', models.CharField(max_length=32)),
                 ('result_text', models.TextField()),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
+                (
+                    "created_by",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name="created_%(model_name)ss",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
+                (
+                    "updated_by",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name="updated_%(model_name)ss",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
                 ('user', models.ForeignKey(
                     on_delete=django.db.models.deletion.CASCADE,
                     related_name='reports',
